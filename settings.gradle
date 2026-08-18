@@ -1,0 +1,13 @@
+pluginManagement {
+	repositories {
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
+// JDK 25 toolchain is detected automatically (installed via winget: Azul.Zulu.25.JDK).
+rootProject.name = 'easytrade'

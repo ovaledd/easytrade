@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "dev.easytrade.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "AbstractContainerScreenMixin",
+    "ClientPacketListenerMixin",
+    "ContainerScreenToastMixin",
+    "MerchantScreenMixin",
+    "MultiPlayerGameModeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "key.easytrade.menu": "Open Easy Trade Menu",
+  "key.category.easytrade.category": "Easy Trade",
+  "easytrade.search.hint": "Search books or items...",
+  "easytrade.screen.title": "Easy Trade - Wanted Trades",
+  "easytrade.screen.wanted": "Wanted (click X to remove)",
+  "easytrade.screen.none": "Nothing wanted - watching all trades",
+  "easytrade.screen.results": "Results (click to add)",
+  "easytrade.screen.typehint": "Type to search - items and enchantments",
+  "easytrade.screen.nomatch": "No matches",
+  "easytrade.screen.hint": "Enter: add first result  |  ESC: close  |  Config: config/easytrade.json"
+}

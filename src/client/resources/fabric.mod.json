@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "easytrade",
+  "version": "${version}",
+  "name": "Easy Trade",
+  "description": "See villager trades by just looking at them - enchanted-book trades always shown first. Right-click any trade to pin it and review it in your inventory, and set wanted trades (F7) for an instant green MATCH alert with the exact price floating above the villager's head.",
+  "authors": [
+    "Ovaled"
+  ],
+  "license": "MIT",
+  "icon": "assets/easytrade/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.easytrade.EasyTradeClient"
+    ]
+  },
+  "mixins": [
+    "easytrade.client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
