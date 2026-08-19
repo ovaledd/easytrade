@@ -25,7 +25,7 @@ public record DesiredTrade(String type, String id, int level) {
 			ItemEnchantments enchantments = output.is(Items.ENCHANTED_BOOK)
 				? output.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY)
 				: output.getEnchantments();
-			for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
 				ResourceKey<Enchantment> key = entry.getKey().unwrapKey().orElse(null);
 				if (key != null && key.identifier().toString().equals(this.id) && (this.level <= 0 || entry.getIntValue() >= this.level)) {
 					return true;

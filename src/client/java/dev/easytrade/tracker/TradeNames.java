@@ -56,7 +56,7 @@ public final class TradeNames {
 	public static String offerSignature(MerchantOffer offer) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(itemKey(offer.getResult())).append(':').append(offer.getResult().getCount());
-		ItemEnchantments ench = enchantmentsOf(offer.getResult());
+ItemEnchantments ench = enchantmentsOf(offer.getResult());
 		for (Object2IntMap.Entry<net.minecraft.core.Holder<Enchantment>> entry : ench.entrySet()) {
 			sb.append('~').append(entry.getKey().unwrapKey().map(k -> k.identifier().toString()).orElse("?"))
 				.append(':').append(entry.getIntValue());

@@ -4,13 +4,15 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector4f;
 
 public record ScreenPos(float x, float y) {
 
 	public static ScreenPos project(Minecraft mc, Vec3 worldPos) {
-		Camera cam = mc.gameRenderer.mainCamera();
-		Matrix4f mvp = cam.getViewRotationProjectionMatrix(new Matrix4f());
+		Camera cam = mc.gameRenderer.getMainCamera();
+		Matrix4f viewRotation = new Matrix4f().rotation(cam.rotation().conjugate(new Quaternionf()));
+		Matrix4f mvp = mc.gameRenderer.getProjectionMatrix(mc.options.fov().get()).mul(viewRotation);
 		Vec3 rel = worldPos.subtract(cam.position());
 		Vector4f clip = new Vector4f((float) rel.x, (float) rel.y, (float) rel.z, 1.0f).mul(mvp);
 		if (clip.w <= 0.01f) {

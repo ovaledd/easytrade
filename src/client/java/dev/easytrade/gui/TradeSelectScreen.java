@@ -3,7 +3,7 @@ package dev.easytrade.gui;
 import dev.easytrade.config.DesiredTrade;
 import dev.easytrade.config.ModConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -106,51 +106,51 @@ public class TradeSelectScreen extends Screen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
 		graphics.fill(0, 0, this.width, this.height, 0x9910141A);
 
-		super.extractRenderState(graphics, mouseX, mouseY, delta);
+		super.render(graphics, mouseX, mouseY, delta);
 
 		Component title = Component.translatable("easytrade.screen.title");
-		graphics.text(this.font, title, this.width / 2 - this.font.width(title) / 2, 8, COLOR_TITLE);
+		graphics.drawString(this.font, title, this.width / 2 - this.font.width(title) / 2, 8, COLOR_TITLE);
 
 		int colX = 16;
 		int colW = 300;
 		Component wantedHeader = Component.translatable("easytrade.screen.wanted");
-		graphics.text(this.font, wantedHeader, colX, 50, COLOR_HEADER);
+		graphics.drawString(this.font, wantedHeader, colX, 50, COLOR_HEADER);
 		int y = 66;
 		for (DesiredTrade trade : ModConfig.INSTANCE.desiredTrades) {
-			graphics.text(this.font, Component.literal("X"), colX + 4, y + 1, COLOR_X);
-			graphics.text(this.font, Component.literal(labelOf(trade)), colX + 20, y + 2, COLOR_TEXT);
+			graphics.drawString(this.font, Component.literal("X"), colX + 4, y + 1, COLOR_X);
+			graphics.drawString(this.font, Component.literal(labelOf(trade)), colX + 20, y + 2, COLOR_TEXT);
 			y += ROW_HEIGHT;
 		}
 		if (ModConfig.INSTANCE.desiredTrades.isEmpty()) {
 			String none = Component.translatable("easytrade.screen.none").getString();
-			graphics.text(this.font, none, colX + colW / 2 - this.font.width(none) / 2, y + 2, COLOR_MUTED);
+			graphics.drawString(this.font, none, colX + colW / 2 - this.font.width(none) / 2, y + 2, COLOR_MUTED);
 		}
 
 		int resX = colX + colW + 24;
 		int resW = this.width - resX - 16;
 		Component resultsHeader = Component.translatable("easytrade.screen.results");
-		graphics.text(this.font, resultsHeader, resX, 50, COLOR_HEADER);
+		graphics.drawString(this.font, resultsHeader, resX, 50, COLOR_HEADER);
 		if (this.query.isEmpty()) {
 			String hint = Component.translatable("easytrade.screen.typehint").getString();
-			graphics.text(this.font, hint, resX + resW / 2 - this.font.width(hint) / 2, 70, COLOR_MUTED);
+			graphics.drawString(this.font, hint, resX + resW / 2 - this.font.width(hint) / 2, 70, COLOR_MUTED);
 		} else {
 			int ry = 66;
 			for (ResultEntry entry : this.results) {
-				graphics.item(entry.icon(), resX, ry);
-				graphics.text(this.font, Component.literal(entry.label()), resX + 20, ry + 4, COLOR_TEXT);
+				graphics.renderItem(entry.icon(), resX, ry);
+				graphics.drawString(this.font, Component.literal(entry.label()), resX + 20, ry + 4, COLOR_TEXT);
 				ry += ROW_HEIGHT;
 			}
 			if (this.results.isEmpty()) {
 				String noMatch = Component.translatable("easytrade.screen.nomatch").getString();
-				graphics.text(this.font, noMatch, resX + resW / 2 - this.font.width(noMatch) / 2, 70, COLOR_MUTED);
+				graphics.drawString(this.font, noMatch, resX + resW / 2 - this.font.width(noMatch) / 2, 70, COLOR_MUTED);
 			}
 		}
 
 		String hint = Component.translatable("easytrade.screen.hint").getString();
-		graphics.text(this.font, hint, this.width / 2 - this.font.width(hint) / 2, this.height - 14, COLOR_MUTED);
+		graphics.drawString(this.font, hint, this.width / 2 - this.font.width(hint) / 2, this.height - 14, COLOR_MUTED);
 	}
 
 	@Override

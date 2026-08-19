@@ -3,7 +3,7 @@ package dev.easytrade.render;
 import dev.easytrade.tracker.PeekData;
 import dev.easytrade.util.ScreenPos;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
@@ -43,7 +43,7 @@ public final class PanelRenderer {
 	private PanelRenderer() {
 	}
 
-	public static void render(GuiGraphicsExtractor graphics, Minecraft mc, PeekData data, Vec3 anchor) {
+	public static void render(GuiGraphics graphics, Minecraft mc, PeekData data, Vec3 anchor) {
 		ScreenPos pos = ScreenPos.project(mc, anchor);
 		if (pos == null) {
 			wasVisible = false;
@@ -121,7 +121,7 @@ public final class PanelRenderer {
 		return PAD + TITLE_H + DETAIL_H + 2 + (showCost ? COST_H : 0) + (cellsH > 0 ? 4 : 0) + cellsH + captionsH + PAD - 2;
 	}
 
-	private static void drawCard(GuiGraphicsExtractor graphics, Minecraft mc, PeekData data, int x, int y, float s,
+	private static void drawCard(GuiGraphics graphics, Minecraft mc, PeekData data, int x, int y, float s,
 		float baseX, float baseY, int alpha, int frameTint) {
 		int w = PANEL_WIDTH;
 		int h = cardHeight(data);
@@ -138,7 +138,7 @@ public final class PanelRenderer {
 		int yCur = PAD;
 
 		String title = data.title();
-		graphics.text(mc.font, title, w / 2 - mc.font.width(title) / 2, yCur,
+		graphics.drawString(mc.font, title, w / 2 - mc.font.width(title) / 2, yCur,
 			withAlpha(data.matched() ? COLOR_MATCH : COLOR_TITLE, alpha));
 		yCur += TITLE_H;
 
@@ -154,14 +154,14 @@ public final class PanelRenderer {
 		if (avail >= 10 && mc.font.width(itemName) > avail) {
 			itemName = mc.font.plainSubstrByWidth(itemName, avail - mc.font.width("...")) + "...";
 		}
-		graphics.item(data.mainIcon(), startX, yCur - 4);
+		graphics.renderItem(data.mainIcon(), startX, yCur - 4);
 		int tx = startX + 20;
 		if (!prefix.isEmpty()) {
-			graphics.text(mc.font, prefix, tx, yCur + 1, withAlpha(COLOR_MATCH, alpha));
+			graphics.drawString(mc.font, prefix, tx, yCur + 1, withAlpha(COLOR_MATCH, alpha));
 			tx += mc.font.width(prefix);
 		}
 		if (!levelText.isEmpty()) {
-			graphics.text(mc.font, levelText, tx, yCur + 1, withAlpha(COLOR_DETAIL, alpha));
+			graphics.drawString(mc.font, levelText, tx, yCur + 1, withAlpha(COLOR_DETAIL, alpha));
 			tx += mc.font.width(levelText);
 		}
 		int nameColor;
@@ -172,12 +172,12 @@ public final class PanelRenderer {
 		} else {
 			nameColor = withAlpha(COLOR_DETAIL, alpha);
 		}
-		graphics.text(mc.font, itemName, tx, yCur + 1, nameColor);
+		graphics.drawString(mc.font, itemName, tx, yCur + 1, nameColor);
 		yCur += DETAIL_H + 2;
 
 		if (!data.price().isEmpty()) {
 			String price = data.price();
-			graphics.text(mc.font, price, w / 2 - mc.font.width(price) / 2, yCur, withAlpha(COLOR_MATCH, alpha));
+			graphics.drawString(mc.font, price, w / 2 - mc.font.width(price) / 2, yCur, withAlpha(COLOR_MATCH, alpha));
 			yCur += COST_H;
 		}
 
@@ -208,7 +208,7 @@ public final class PanelRenderer {
 				graphics.pose().pushMatrix();
 				graphics.pose().translate(cx + cell / 2.0f, cy + cell / 2.0f);
 				graphics.pose().scale((cell - 2) / 16.0f);
-				graphics.item(line.output(), -8, -8);
+				graphics.renderItem(line.output(), -8, -8);
 				graphics.pose().popMatrix();
 			}
 			boolean showCaptions = false;
@@ -229,7 +229,7 @@ public final class PanelRenderer {
 					int cw = mc.font.width(line.price());
 					int px = cx + cell / 2 - cw / 2;
 					px = Math.max(PAD, Math.min(px, w - PAD - cw));
-					graphics.text(mc.font, line.price(), px, cy, withAlpha(COLOR_MATCH, alpha));
+					graphics.drawString(mc.font, line.price(), px, cy, withAlpha(COLOR_MATCH, alpha));
 				}
 			}
 		}

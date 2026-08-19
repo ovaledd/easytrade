@@ -4,7 +4,7 @@ import dev.easytrade.config.DesiredTrade;
 import dev.easytrade.config.ModConfig;
 import dev.easytrade.render.PanelRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
@@ -20,7 +20,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -127,7 +126,7 @@ public final class TradeWatcher {
 			return;
 		}
 
-		if (client.gui.screen() != null) {
+		if (client.screen != null) {
 			return;
 		}
 		if (player.isShiftKeyDown() || player.isSpectator() || player.isDeadOrDying()) {
@@ -164,7 +163,7 @@ public final class TradeWatcher {
 		pendingVillager = target;
 		lastPeekTick = client.level.getGameTime();
 		peekInteract = true;
-		client.gameMode.interact(player, target, new EntityHitResult(target), InteractionHand.MAIN_HAND);
+		client.gameMode.interact(player, target, InteractionHand.MAIN_HAND);
 		peekInteract = false;
 	}
 
@@ -321,7 +320,7 @@ public final class TradeWatcher {
 		showToast("Trade pinned successfully", COLOR_TOAST_GREEN);
 	}
 
-	public static void renderToast(GuiGraphicsExtractor graphics) {
+	public static void renderToast(GuiGraphics graphics) {
 		if (toastText == null) {
 			return;
 		}
@@ -343,10 +342,10 @@ public final class TradeWatcher {
 		int w = mc.font.width(toastText);
 		int x = (graphics.guiWidth() - w) / 2;
 		int y = graphics.guiHeight() - 62;
-		graphics.text(mc.font, toastText, x, y, color);
+		graphics.drawString(mc.font, toastText, x, y, color);
 	}
 
-	public static void renderInventoryOverlay(GuiGraphicsExtractor graphics, int containerLeft, int containerTop,
+	public static void renderInventoryOverlay(GuiGraphics graphics, int containerLeft, int containerTop,
 		int containerWidth) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc == null || mc.player == null || mc.level == null) {
@@ -371,7 +370,7 @@ public final class TradeWatcher {
 		}
 	}
 
-	private static int drawInventoryCard(GuiGraphicsExtractor graphics, Minecraft mc, LocalPlayer player, PeekData d,
+	private static int drawInventoryCard(GuiGraphics graphics, Minecraft mc, LocalPlayer player, PeekData d,
 		int x, int y, int index) {
 		int w = PanelRenderer.PANEL_WIDTH;
 		int h = 54;
@@ -385,13 +384,13 @@ public final class TradeWatcher {
 		int buttonX = x + w - 22;
 		int buttonY = y + 4;
 		graphics.fill(buttonX, buttonY, buttonX + 14, buttonY + 10, 0x66000000);
-		graphics.text(mc.font, "X", buttonX + (14 - mc.font.width("X")) / 2, buttonY + 1, 0xFFFF6B6B);
+		graphics.drawString(mc.font, "X", buttonX + (14 - mc.font.width("X")) / 2, buttonY + 1, 0xFFFF6B6B);
 		invButtons.add(new InvButton(buttonX, buttonY, 14, 10, index));
 
 		String title = d.title();
-		graphics.text(mc.font, title, x + 8, y + 4, d.matched() ? PanelRenderer.COLOR_MATCH : PanelRenderer.COLOR_TITLE);
+		graphics.drawString(mc.font, title, x + 8, y + 4, d.matched() ? PanelRenderer.COLOR_MATCH : PanelRenderer.COLOR_TITLE);
 
-		graphics.item(d.mainIcon(), x + 8, y + 20);
+		graphics.renderItem(d.mainIcon(), x + 8, y + 20);
 		String itemName = d.itemName();
 		int nameColor;
 		if (d.matched()) {
@@ -401,10 +400,10 @@ public final class TradeWatcher {
 		} else {
 			nameColor = PanelRenderer.COLOR_DETAIL;
 		}
-		graphics.text(mc.font, itemName, x + 28, y + 25, nameColor);
+		graphics.drawString(mc.font, itemName, x + 28, y + 25, nameColor);
 
 		String cost = d.mainCost();
-		graphics.text(mc.font, cost, x + 8, y + 40, affordable ? PanelRenderer.COLOR_MATCH : PanelRenderer.COLOR_DETAIL);
+		graphics.drawString(mc.font, cost, x + 8, y + 40, affordable ? PanelRenderer.COLOR_MATCH : PanelRenderer.COLOR_DETAIL);
 		return y + h;
 	}
 
@@ -445,9 +444,9 @@ public final class TradeWatcher {
 		return total;
 	}
 
-	public static void render(GuiGraphicsExtractor graphics) {
+	public static void render(GuiGraphics graphics) {
 		Minecraft mc = Minecraft.getInstance();
-		if (mc == null || mc.player == null || mc.level == null || mc.gui.screen() != null) {
+		if (mc == null || mc.player == null || mc.level == null || mc.screen != null) {
 			return;
 		}
 		PeekData d = data;
