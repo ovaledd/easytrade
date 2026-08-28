@@ -36,6 +36,8 @@ public class TradeSelectScreen extends Screen {
 	private String query = "";
 	private List<ResultEntry> results = new ArrayList<>();
 	private List<ResultEntry> allResults = new ArrayList<>();
+	private int scrollOffset = 0;
+	private int maxVisibleResults = 12;
 	private Button clearAllButton;
 
 	private record ResultEntry(String label, DesiredTrade trade, ItemStack icon) {
@@ -52,6 +54,7 @@ public class TradeSelectScreen extends Screen {
 		this.searchBox.setHint(Component.translatable("easytrade.search.hint"));
 		this.searchBox.setResponder(q -> {
 			this.query = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
+			this.scrollOffset = 0;
 			this.filterResults();
 		});
 		this.addRenderableWidget(this.searchBox);
@@ -97,6 +100,7 @@ public class TradeSelectScreen extends Screen {
 
 	private void filterResults() {
 		results.clear();
+		scrollOffset = 0;
 		for (ResultEntry entry : allResults) {
 			if (matchesQuery(entry)) {
 				results.add(entry);
@@ -138,17 +142,30 @@ public class TradeSelectScreen extends Screen {
 		int resW = this.width - resX - 16;
 		Component resultsHeader = Component.translatable("easytrade.screen.results");
 		graphics.text(this.font, resultsHeader, resX, 50, COLOR_HEADER);
+
+		// Draw scrollable results
+		int resYStart = 66;
+		int maxVisible = Math.min(maxVisibleResults, results.size());
+		int visibleStart = Math.max(0, Math.min(scrollOffset, results.size() - Math.min(maxVisibleResults, results.size())));
+		int visibleEnd = Math.min(visibleStart + maxVisibleResults, results.size());
+
 		if (results.isEmpty()) {
 			String hint = query.isEmpty()
 				? Component.translatable("easytrade.screen.typehint").getString()
 				: Component.translatable("easytrade.screen.nomatch").getString();
-			graphics.text(this.font, hint, resX + resW / 2 - this.font.width(hint) / 2, 70, COLOR_MUTED);
+			graphics.text(this.font, hint, resX + (260 - this.font.width(hint)) / 2, 70, COLOR_MUTED);
 		} else {
-			int ry = 66;
-			for (ResultEntry entry : results) {
+			for (int i = visibleStart; i < visibleEnd; i++) {
+				ResultEntry entry = results.get(i);
+				int ry = resYStart + (i - visibleStart) * ROW_HEIGHT;
 				graphics.item(entry.icon(), resX, ry);
 				graphics.text(this.font, Component.literal(entry.label()), resX + 20, ry + 4, COLOR_TEXT);
-				ry += ROW_HEIGHT;
+			}
+
+			// Draw scroll indicators
+			if (results.size() > 12) {
+				String scrollHint = "\u2191 \u2193 Scroll";
+				graphics.text(this.font, scrollHint, resX + 260 - this.font.width(scrollHint), 66 + maxVisible * ROW_HEIGHT + 2, COLOR_MUTED);
 			}
 		}
 
@@ -180,10 +197,14 @@ public class TradeSelectScreen extends Screen {
 				y += ROW_HEIGHT;
 			}
 
-			int resX = colX + 324;
-			int ry = 66;
-			for (ResultEntry entry : results) {
-				if (mx >= resX && mx <= resX + 260 && my >= ry && my <= ry + ROW_HEIGHT) {
+			int resX = 16 + 300 + 24;
+			int resYStart = 66;
+			int visibleStart = Math.max(0, Math.min(scrollOffset, results.size() - Math.min(maxVisibleResults, results.size())));
+			int visibleEnd = Math.min(visibleStart + 12, results.size());
+			for (int i = visibleStart; i < results.size() && i < visibleStart + 12; i++) {
+				ResultEntry entry = results.get(i);
+				int entryY = 66 + (i - visibleStart) * ROW_HEIGHT;
+				if (mx >= resX && mx <= resX + 260 && my >= entryY && my <= entryY + ROW_HEIGHT) {
 					if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
 						removeWanted(entry.trade());
 					} else {
@@ -191,7 +212,6 @@ public class TradeSelectScreen extends Screen {
 					}
 					return true;
 				}
-				ry += ROW_HEIGHT;
 			}
 		}
 		return super.mouseClicked(event, doubleClicked);
@@ -218,7 +238,7 @@ public class TradeSelectScreen extends Screen {
 
 	@Override
 	public boolean keyPressed(KeyEvent event) {
-		if (event.key() == GLFW.GLFW_KEY_ENTER && !results.isEmpty()) {
+		if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_ENTER) && !results.isEmpty()) {
 			if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
 				removeWanted(results.get(0).trade());
 			} else {
@@ -226,7 +246,7 @@ public class TradeSelectScreen extends Screen {
 			}
 			return true;
 		}
-		if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+		if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_ESCAPE)) {
 			onClose();
 			return true;
 		}
