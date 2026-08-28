@@ -1,5 +1,6 @@
 package dev.easytrade.render;
 
+import dev.easytrade.config.ModConfig;
 import dev.easytrade.tracker.PeekData;
 import dev.easytrade.util.ScreenPos;
 import net.minecraft.client.Minecraft;
@@ -20,8 +21,6 @@ public final class PanelRenderer {
 	public static final int COLOR_DETAIL = 0xFFE9E9EF;
 	public static final int COLOR_MATCH = 0xFF4ADE80;
 	public static final int TINT_MATCH = 0xA8F0C5;
-	public static final float BG_ALPHA = 0.30f;
-	public static final float FRAME_ALPHA = 0.65f;
 
 	private static final int PAD = 8;
 	private static final int TITLE_H = 11;
@@ -31,10 +30,6 @@ public final class PanelRenderer {
 	private static final int CELL_MIN = 8;
 	private static final int CELL_GAP = 2;
 	private static final int MAX_CELLS = 16;
-	private static final long FADE_START = 30;
-	private static final long FADE_END = 40;
-	private static final long FADE_IN_TICKS = 5;
-
 	private static final int COLOR_BORDER = 0xFFA9A9B6;
 
 	private static boolean wasVisible = false;
@@ -44,6 +39,7 @@ public final class PanelRenderer {
 	}
 
 	public static void render(GuiGraphicsExtractor graphics, Minecraft mc, PeekData data, Vec3 anchor) {
+		ModConfig cfg = ModConfig.INSTANCE;
 		ScreenPos pos = ScreenPos.project(mc, anchor);
 		if (pos == null) {
 			wasVisible = false;
@@ -60,7 +56,7 @@ public final class PanelRenderer {
 
 		long now = mc.level.getGameTime();
 		long elapsed = now - data.seenAtTick();
-		if (elapsed > FADE_END) {
+		if (elapsed > cfg.fadeEndTicks) {
 			wasVisible = false;
 			return;
 		}
@@ -70,10 +66,10 @@ public final class PanelRenderer {
 			appearTick = now;
 		}
 
-		float fadeIn = clamp01((now - appearTick) / (float) FADE_IN_TICKS);
+		float fadeIn = clamp01((now - appearTick) / (float) cfg.fadeInTicks);
 		float fade = 1.0f;
-		if (elapsed > FADE_START) {
-			float t = clamp01((FADE_END - elapsed) / (float) (FADE_END - FADE_START));
+		if (elapsed > cfg.fadeStartTicks) {
+			float t = clamp01((cfg.fadeEndTicks - elapsed) / (float) (cfg.fadeEndTicks - cfg.fadeStartTicks));
 			fade = 1.0f - (1.0f - t) * (1.0f - t);
 		}
 		float totalAlpha = fade * fadeIn;
@@ -95,7 +91,7 @@ public final class PanelRenderer {
 		}
 		y = Math.max(4, Math.min(y, gh - (int) (cardHeight(data) * s) - 4));
 
-		drawCard(graphics, mc, data, x, y, s, baseX, baseY, alpha, data.matched() ? TINT_MATCH : 0xFFFFFF);
+		drawCard(graphics, mc, data, x, y, s, baseX, baseY, alpha, data.matched() ? TINT_MATCH : 0xFFFFFF, cfg);
 	}
 
 	private static int cardHeight(PeekData data) {
@@ -122,7 +118,7 @@ public final class PanelRenderer {
 	}
 
 	private static void drawCard(GuiGraphicsExtractor graphics, Minecraft mc, PeekData data, int x, int y, float s,
-		float baseX, float baseY, int alpha, int frameTint) {
+		float baseX, float baseY, int alpha, int frameTint, ModConfig cfg) {
 		int w = PANEL_WIDTH;
 		int h = cardHeight(data);
 
@@ -130,8 +126,8 @@ public final class PanelRenderer {
 		graphics.pose().translate(x / baseX, y / baseY);
 		graphics.pose().scale(s, s);
 
-		int bgColor = ((int) (alpha * BG_ALPHA) << 24) | 0xFFFFFF;
-		int frameColor = ((int) (alpha * FRAME_ALPHA) << 24) | frameTint;
+		int bgColor = ((int) (alpha * cfg.getPanelOpacity()) << 24) | 0xFFFFFF;
+		int frameColor = ((int) (alpha * cfg.getPanelFrameOpacity()) << 24) | frameTint;
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, TOOLTIP_BACKGROUND, 0, 0, w, h, bgColor);
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, TOOLTIP_FRAME, 0, 0, w, h, frameColor);
 
@@ -167,7 +163,7 @@ public final class PanelRenderer {
 		int nameColor;
 		if (data.matched()) {
 			nameColor = withAlpha(COLOR_MATCH, alpha);
-		} else if (data.mainIcon().is(Items.ENCHANTED_BOOK)) {
+		} else if (cfg.rainbowEffect && data.mainIcon().is(Items.ENCHANTED_BOOK)) {
 			nameColor = rainbowColor(mc.level.getGameTime(), alpha);
 		} else {
 			nameColor = withAlpha(COLOR_DETAIL, alpha);

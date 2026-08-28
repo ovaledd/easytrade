@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -24,8 +25,10 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class TradeWatcher {
@@ -33,14 +36,20 @@ public final class TradeWatcher {
 	private static final double MAX_RANGE = 3.0;
 	private static final double MAX_ANGLE_COS = Math.cos(Math.toRadians(13.0));
 	private static final int PEEK_TIMEOUT_TICKS = 60;
-	private static final int DISPLAY_FADE_TICKS = 40;
 	private static final int MAX_CELLS = 16;
 	private static final int MANUAL_SUPPRESS_TICKS = 10;
-	private static final int MAX_PINS = 4;
 	private static final int TOAST_TICKS = 60;
 	private static final int TOAST_FADE_TICKS = 20;
 	private static final int COLOR_TOAST_GREEN = 0x55FF55;
 	private static final int COLOR_TOAST_MAROON = 0x8B0000;
+
+	private static final Map<String, SoundEvent> ALERT_SOUNDS = new HashMap<>();
+	static {
+		ALERT_SOUNDS.put("experience_orb_pickup", SoundEvents.EXPERIENCE_ORB_PICKUP);
+		ALERT_SOUNDS.put("note_pling", SoundEvents.NOTE_BLOCK_PLING.value());
+		ALERT_SOUNDS.put("villager_yes", SoundEvents.VILLAGER_YES);
+		ALERT_SOUNDS.put("button_click", SoundEvents.UI_BUTTON_CLICK.value());
+	}
 
 	private static boolean peekMode = false;
 	private static boolean peekInteract = false;
@@ -108,6 +117,10 @@ public final class TradeWatcher {
 		toastColor = color;
 		Minecraft mc = Minecraft.getInstance();
 		toastExpireTick = mc.level != null ? mc.level.getGameTime() + TOAST_TICKS : 0;
+	}
+
+	private static SoundEvent getAlertSound() {
+		return ALERT_SOUNDS.getOrDefault(ModConfig.INSTANCE.alertSoundType, SoundEvents.EXPERIENCE_ORB_PICKUP);
 	}
 
 	public static void tick(Minecraft client) {
@@ -281,7 +294,7 @@ public final class TradeWatcher {
 			if (want.matches(offer.getResult())) {
 				String sigKey = villager.getUUID() + "|" + TradeNames.offerSignature(offer);
 				if (cfg.alertSound && alertedMatches.add(sigKey)) {
-					player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+					player.playSound(getAlertSound(), 1.0f, 1.0f);
 				}
 				return true;
 			}
@@ -310,8 +323,8 @@ public final class TradeWatcher {
 				return;
 			}
 		}
-		if (pinnedTrades.size() >= MAX_PINS) {
-			showToast("You have reached the maximum pinned trades!", COLOR_TOAST_MAROON);
+		if (pinnedTrades.size() >= ModConfig.INSTANCE.getMaxPins()) {
+			showToast("You have reached the maximum pinned trades (" + ModConfig.INSTANCE.getMaxPins() + ")!", COLOR_TOAST_MAROON);
 			return;
 		}
 		PeekData d = new PeekData(TradeNames.villagerTitle(villager), "", TradeNames.offerTitle(offer), "",
@@ -346,6 +359,11 @@ public final class TradeWatcher {
 		graphics.text(mc.font, toastText, x, y, color);
 	}
 
+	public static void clearAllPins() {
+		pinnedTrades.clear();
+		showToast("Cleared all pinned trades", COLOR_TOAST_GREEN);
+	}
+
 	public static void renderInventoryOverlay(GuiGraphicsExtractor graphics, int containerLeft, int containerTop,
 		int containerWidth) {
 		Minecraft mc = Minecraft.getInstance();
@@ -371,13 +389,14 @@ public final class TradeWatcher {
 		}
 	}
 
-	private static int drawInventoryCard(GuiGraphicsExtractor graphics, Minecraft mc, LocalPlayer player, PeekData d,
+private static int drawInventoryCard(GuiGraphicsExtractor graphics, Minecraft mc, LocalPlayer player, PeekData d,
 		int x, int y, int index) {
+		ModConfig cfg = ModConfig.INSTANCE;
 		int w = PanelRenderer.PANEL_WIDTH;
 		int h = 54;
 		boolean affordable = canAfford(player, d.costA(), d.costB());
-		int bgColor = ((int) (255 * PanelRenderer.BG_ALPHA) << 24) | 0xFFFFFF;
-		int frameColor = ((int) (255 * PanelRenderer.FRAME_ALPHA) << 24)
+		int bgColor = ((int) (255 * cfg.getPanelOpacity()) << 24) | 0xFFFFFF;
+		int frameColor = ((int) (255 * cfg.getPanelFrameOpacity()) << 24)
 			| (affordable ? PanelRenderer.TINT_MATCH : 0xFFFFFF);
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, PanelRenderer.TOOLTIP_BACKGROUND, x, y, w, h, bgColor);
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, PanelRenderer.TOOLTIP_FRAME, x, y, w, h, frameColor);
@@ -396,7 +415,7 @@ public final class TradeWatcher {
 		int nameColor;
 		if (d.matched()) {
 			nameColor = PanelRenderer.COLOR_MATCH;
-		} else if (d.mainIcon().is(Items.ENCHANTED_BOOK)) {
+		} else if (cfg.rainbowEffect && d.mainIcon().is(Items.ENCHANTED_BOOK)) {
 			nameColor = PanelRenderer.rainbowColor(mc.level.getGameTime(), 255);
 		} else {
 			nameColor = PanelRenderer.COLOR_DETAIL;
@@ -454,7 +473,7 @@ public final class TradeWatcher {
 		if (d == null || anchor == null) {
 			return;
 		}
-		if (mc.level.getGameTime() - d.seenAtTick() > DISPLAY_FADE_TICKS) {
+		if (mc.level.getGameTime() - d.seenAtTick() > ModConfig.INSTANCE.fadeEndTicks) {
 			return;
 		}
 

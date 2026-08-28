@@ -18,6 +18,7 @@ public class EasyTradeClient implements ClientModInitializer {
 	public static final String MOD_ID = "easytrade";
 
 	private static KeyMapping openMenuKey;
+	private static KeyMapping clearPinsKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -25,7 +26,9 @@ public class EasyTradeClient implements ClientModInitializer {
 
 		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "category"));
 		openMenuKey = new KeyMapping("key.easytrade.menu", GLFW.GLFW_KEY_F7, category);
+		clearPinsKey = new KeyMapping("key.easytrade.clear_pins", GLFW.GLFW_KEY_DELETE, category);
 		KeyMappingHelper.registerKeyMapping(openMenuKey);
+		KeyMappingHelper.registerKeyMapping(clearPinsKey);
 
 		ClientTickEvents.END_CLIENT_TICK.register(EasyTradeClient::onTick);
 		HudElementRegistry.attachElementAfter(
@@ -37,6 +40,9 @@ public class EasyTradeClient implements ClientModInitializer {
 	private static void onTick(Minecraft client) {
 		if (openMenuKey.consumeClick()) {
 			client.setScreenAndShow(new TradeSelectScreen());
+		}
+		if (clearPinsKey.consumeClick()) {
+			TradeWatcher.clearAllPins();
 		}
 		TradeWatcher.tick(client);
 	}

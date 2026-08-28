@@ -2,8 +2,10 @@ package dev.easytrade.gui;
 
 import dev.easytrade.config.DesiredTrade;
 import dev.easytrade.config.ModConfig;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -29,12 +31,18 @@ public class TradeSelectScreen extends Screen {
 	private static final int COLOR_TEXT = 0xFFE4E4E9;
 	private static final int COLOR_MUTED = 0xFF70707A;
 	private static final int COLOR_X = 0xFFFF6B6B;
+	private static final int COLOR_CLEAR = 0xFF8888FF;
+
+	private enum Tab { ALL, ITEMS, ENCHANTMENTS }
 
 	private EditBox searchBox;
 	private String query = "";
 	private List<ResultEntry> results = new ArrayList<>();
+	private List<ResultEntry> allResults = new ArrayList<>();
+	private Tab currentTab = Tab.ALL;
+	private Button clearAllButton;
 
-	private record ResultEntry(String label, DesiredTrade trade, ItemStack icon) {
+	private record ResultEntry(String label, DesiredTrade trade, ItemStack icon, boolean isEnchantment) {
 	}
 
 	public TradeSelectScreen() {
@@ -48,10 +56,19 @@ public class TradeSelectScreen extends Screen {
 		this.searchBox.setHint(Component.translatable("easytrade.search.hint"));
 		this.searchBox.setResponder(q -> {
 			this.query = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
-			this.refreshResults();
+			this.filterResults();
 		});
 		this.addRenderableWidget(this.searchBox);
-		this.refreshResults();
+
+		this.clearAllButton = Button.builder(Component.translatable("easytrade.screen.clear_all"), b -> {
+			ModConfig.INSTANCE.desiredTrades.clear();
+			ModConfig.save();
+		}).bounds(this.width - 80, 4, 76, 18).build();
+		this.addRenderableWidget(this.clearAllButton);
+		this.clearAllButton.visible = !ModConfig.INSTANCE.desiredTrades.isEmpty();
+
+		this.refreshAllResults();
+		this.filterResults();
 	}
 
 	@Override
@@ -59,50 +76,44 @@ public class TradeSelectScreen extends Screen {
 		this.setInitialFocus(this.searchBox);
 	}
 
-	private void refreshResults() {
-		List<ResultEntry> entries = new ArrayList<>();
+	private void refreshAllResults() {
+		allResults.clear();
 		Minecraft mc = Minecraft.getInstance();
 
 		for (Identifier id : BuiltInRegistries.ITEM.keySet()) {
-			if (id.getPath().equals("air")) {
-				continue;
-			}
+			if (id.getPath().equals("air")) continue;
 			var item = BuiltInRegistries.ITEM.getValue(id);
-			if (item == Items.AIR) {
-				continue;
-			}
+			if (item == Items.AIR) continue;
 			ItemStack stack = new ItemStack(item);
 			String label = stack.getHoverName().getString();
-			if (matchesQuery(id.toString(), label)) {
-				entries.add(new ResultEntry(label, new DesiredTrade("item", id.toString(), 0), stack));
-				if (entries.size() >= RESULTS_CAP) {
-					break;
-				}
-			}
+			allResults.add(new ResultEntry(label, new DesiredTrade("item", id.toString(), 0), stack, false));
 		}
 
-		if (entries.size() < RESULTS_CAP && mc.level != null) {
+		if (mc.level != null) {
 			mc.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).listElements().forEach(holder -> {
-				if (entries.size() >= RESULTS_CAP) {
-					return;
-				}
 				Identifier id = holder.key().identifier();
 				String label = holder.value().description().getString();
-				if (matchesQuery(id.toString(), label)) {
-					ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
-					entries.add(new ResultEntry(label, new DesiredTrade("enchantment", id.toString(), 0), book));
-				}
+				ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+				allResults.add(new ResultEntry(label, new DesiredTrade("enchantment", id.toString(), 0), book, true));
 			});
 		}
-
-		this.results = entries;
 	}
 
-	private boolean matchesQuery(String id, String label) {
-		if (this.query.isEmpty()) {
-			return false;
+	private void filterResults() {
+		results.clear();
+		for (ResultEntry entry : allResults) {
+			if (currentTab == Tab.ITEMS && entry.isEnchantment()) continue;
+			if (currentTab == Tab.ENCHANTMENTS && !entry.isEnchantment()) continue;
+			if (matchesQuery(entry)) {
+				results.add(entry);
+			}
 		}
-		return id.toLowerCase(Locale.ROOT).contains(this.query) || label.toLowerCase(Locale.ROOT).contains(this.query);
+	}
+
+	private boolean matchesQuery(ResultEntry entry) {
+		if (query.isEmpty()) return true;
+		return entry.trade().id().toLowerCase(Locale.ROOT).contains(query) ||
+			entry.label().toLowerCase(Locale.ROOT).contains(query);
 	}
 
 	@Override
@@ -113,6 +124,20 @@ public class TradeSelectScreen extends Screen {
 
 		Component title = Component.translatable("easytrade.screen.title");
 		graphics.text(this.font, title, this.width / 2 - this.font.width(title) / 2, 8, COLOR_TITLE);
+
+		int tabY = 30;
+		int tabW = 80;
+		int tabStartX = this.width / 2 - (tabW * 3 + 8) / 2;
+		for (int i = 0; i < Tab.values().length; i++) {
+			Tab tab = Tab.values()[i];
+			int tx = tabStartX + i * (tabW + 4);
+			boolean selected = tab == currentTab;
+			int color = selected ? COLOR_TITLE : COLOR_MUTED;
+			graphics.fill(tx, tabY, tx + tabW, tabY + 20, selected ? 0xFF3A3A4A : 0xFF2A2A3A);
+			graphics.text(this.font, Component.translatable("easytrade.tab." + tab.name().toLowerCase()),
+				tx + tabW / 2 - this.font.width(Component.translatable("easytrade.tab." + tab.name().toLowerCase())) / 2,
+				tabY + 5, color);
+		}
 
 		int colX = 16;
 		int colW = 300;
@@ -133,24 +158,25 @@ public class TradeSelectScreen extends Screen {
 		int resW = this.width - resX - 16;
 		Component resultsHeader = Component.translatable("easytrade.screen.results");
 		graphics.text(this.font, resultsHeader, resX, 50, COLOR_HEADER);
-		if (this.query.isEmpty()) {
-			String hint = Component.translatable("easytrade.screen.typehint").getString();
+		if (results.isEmpty()) {
+			String hint = query.isEmpty()
+				? Component.translatable("easytrade.screen.typehint").getString()
+				: Component.translatable("easytrade.screen.nomatch").getString();
 			graphics.text(this.font, hint, resX + resW / 2 - this.font.width(hint) / 2, 70, COLOR_MUTED);
 		} else {
 			int ry = 66;
-			for (ResultEntry entry : this.results) {
+			for (ResultEntry entry : results) {
 				graphics.item(entry.icon(), resX, ry);
 				graphics.text(this.font, Component.literal(entry.label()), resX + 20, ry + 4, COLOR_TEXT);
 				ry += ROW_HEIGHT;
-			}
-			if (this.results.isEmpty()) {
-				String noMatch = Component.translatable("easytrade.screen.nomatch").getString();
-				graphics.text(this.font, noMatch, resX + resW / 2 - this.font.width(noMatch) / 2, 70, COLOR_MUTED);
 			}
 		}
 
 		String hint = Component.translatable("easytrade.screen.hint").getString();
 		graphics.text(this.font, hint, this.width / 2 - this.font.width(hint) / 2, this.height - 14, COLOR_MUTED);
+
+		Component pinnedHint = Component.translatable("easytrade.screen.pinned_hint", ModConfig.INSTANCE.getMaxPins());
+		graphics.text(this.font, pinnedHint, this.width / 2 - this.font.width(pinnedHint) / 2, this.height - 28, COLOR_MUTED);
 	}
 
 	@Override
@@ -158,6 +184,18 @@ public class TradeSelectScreen extends Screen {
 		if (event.buttonInfo().button() == 0) {
 			int mx = (int) event.x();
 			int my = (int) event.y();
+
+			int tabY = 30;
+			int tabW = 80;
+			int tabStartX = this.width / 2 - (tabW * 3 + 8) / 2;
+			for (int i = 0; i < Tab.values().length; i++) {
+				int tx = tabStartX + i * (tabW + 4);
+				if (mx >= tx && mx <= tx + tabW && my >= tabY && my <= tabY + 20) {
+					currentTab = Tab.values()[i];
+					filterResults();
+					return true;
+				}
+			}
 
 			int colX = 16;
 			int y = 66;
@@ -167,6 +205,7 @@ public class TradeSelectScreen extends Screen {
 				if (mx >= colX && mx <= colX + 16 && my >= y && my <= y + ROW_HEIGHT) {
 					wanted.remove(idx);
 					ModConfig.save();
+					clearAllButton.visible = !wanted.isEmpty();
 					return true;
 				}
 				idx++;
@@ -175,9 +214,13 @@ public class TradeSelectScreen extends Screen {
 
 			int resX = colX + 324;
 			int ry = 66;
-			for (ResultEntry entry : this.results) {
+			for (ResultEntry entry : results) {
 				if (mx >= resX && mx <= resX + 260 && my >= ry && my <= ry + ROW_HEIGHT) {
-					addWanted(entry.trade());
+					if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+						removeWanted(entry.trade());
+					} else {
+						addWanted(entry.trade());
+					}
 					return true;
 				}
 				ry += ROW_HEIGHT;
@@ -195,12 +238,28 @@ public class TradeSelectScreen extends Screen {
 		}
 		wanted.add(trade);
 		ModConfig.save();
+		clearAllButton.visible = true;
+	}
+
+	private void removeWanted(DesiredTrade trade) {
+		List<DesiredTrade> wanted = ModConfig.INSTANCE.desiredTrades;
+		wanted.removeIf(t -> t.type().equals(trade.type()) && t.id().equals(trade.id()));
+		ModConfig.save();
+		clearAllButton.visible = !wanted.isEmpty();
 	}
 
 	@Override
 	public boolean keyPressed(KeyEvent event) {
-		if (event.key() == GLFW.GLFW_KEY_ENTER && !this.results.isEmpty()) {
-			addWanted(this.results.get(0).trade());
+		if (event.key() == GLFW.GLFW_KEY_ENTER && !results.isEmpty()) {
+			if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+				removeWanted(results.get(0).trade());
+			} else {
+				addWanted(results.get(0).trade());
+			}
+			return true;
+		}
+		if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+			onClose();
 			return true;
 		}
 		return super.keyPressed(event);

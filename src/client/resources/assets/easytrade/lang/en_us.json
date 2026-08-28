@@ -1,12 +1,18 @@
 {
   "key.easytrade.menu": "Open Easy Trade Menu",
+  "key.easytrade.clear_pins": "Clear All Pinned Trades",
   "key.category.easytrade.category": "Easy Trade",
   "easytrade.search.hint": "Search books or items...",
   "easytrade.screen.title": "Easy Trade - Wanted Trades",
+  "easytrade.tab.all": "All",
+  "easytrade.tab.items": "Items",
+  "easytrade.tab.enchantments": "Enchants",
   "easytrade.screen.wanted": "Wanted (click X to remove)",
   "easytrade.screen.none": "Nothing wanted - watching all trades",
-  "easytrade.screen.results": "Results (click to add)",
+  "easytrade.screen.results": "Results (click to add, Shift-click to remove)",
   "easytrade.screen.typehint": "Type to search - items and enchantments",
   "easytrade.screen.nomatch": "No matches",
-  "easytrade.screen.hint": "Enter: add first result  |  ESC: close  |  Config: config/easytrade.json"
+  "easytrade.screen.clear_all": "Clear All",
+  "easytrade.screen.pinned_hint": "Max pins: %d  |  DELETE: clear all",
+  "easytrade.screen.hint": "Enter: add first  |  Shift+Enter: remove  |  ESC: close  |  DELETE: clear pins  |  Config: config/easytrade.json"
 }
