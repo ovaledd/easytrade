@@ -31,18 +31,14 @@ public class TradeSelectScreen extends Screen {
 	private static final int COLOR_TEXT = 0xFFE4E4E9;
 	private static final int COLOR_MUTED = 0xFF70707A;
 	private static final int COLOR_X = 0xFFFF6B6B;
-	private static final int COLOR_CLEAR = 0xFF8888FF;
-
-	private enum Tab { ALL, ITEMS, ENCHANTMENTS }
 
 	private EditBox searchBox;
 	private String query = "";
 	private List<ResultEntry> results = new ArrayList<>();
 	private List<ResultEntry> allResults = new ArrayList<>();
-	private Tab currentTab = Tab.ALL;
 	private Button clearAllButton;
 
-	private record ResultEntry(String label, DesiredTrade trade, ItemStack icon, boolean isEnchantment) {
+	private record ResultEntry(String label, DesiredTrade trade, ItemStack icon) {
 	}
 
 	public TradeSelectScreen() {
@@ -86,7 +82,7 @@ public class TradeSelectScreen extends Screen {
 			if (item == Items.AIR) continue;
 			ItemStack stack = new ItemStack(item);
 			String label = stack.getHoverName().getString();
-			allResults.add(new ResultEntry(label, new DesiredTrade("item", id.toString(), 0), stack, false));
+			allResults.add(new ResultEntry(label, new DesiredTrade("item", id.toString(), 0), stack));
 		}
 
 		if (mc.level != null) {
@@ -94,7 +90,7 @@ public class TradeSelectScreen extends Screen {
 				Identifier id = holder.key().identifier();
 				String label = holder.value().description().getString();
 				ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
-				allResults.add(new ResultEntry(label, new DesiredTrade("enchantment", id.toString(), 0), book, true));
+				allResults.add(new ResultEntry(label, new DesiredTrade("enchantment", id.toString(), 0), book));
 			});
 		}
 	}
@@ -102,8 +98,6 @@ public class TradeSelectScreen extends Screen {
 	private void filterResults() {
 		results.clear();
 		for (ResultEntry entry : allResults) {
-			if (currentTab == Tab.ITEMS && entry.isEnchantment()) continue;
-			if (currentTab == Tab.ENCHANTMENTS && !entry.isEnchantment()) continue;
 			if (matchesQuery(entry)) {
 				results.add(entry);
 			}
@@ -124,20 +118,6 @@ public class TradeSelectScreen extends Screen {
 
 		Component title = Component.translatable("easytrade.screen.title");
 		graphics.text(this.font, title, this.width / 2 - this.font.width(title) / 2, 8, COLOR_TITLE);
-
-		int tabY = 30;
-		int tabW = 80;
-		int tabStartX = this.width / 2 - (tabW * 3 + 8) / 2;
-		for (int i = 0; i < Tab.values().length; i++) {
-			Tab tab = Tab.values()[i];
-			int tx = tabStartX + i * (tabW + 4);
-			boolean selected = tab == currentTab;
-			int color = selected ? COLOR_TITLE : COLOR_MUTED;
-			graphics.fill(tx, tabY, tx + tabW, tabY + 20, selected ? 0xFF3A3A4A : 0xFF2A2A3A);
-			graphics.text(this.font, Component.translatable("easytrade.tab." + tab.name().toLowerCase()),
-				tx + tabW / 2 - this.font.width(Component.translatable("easytrade.tab." + tab.name().toLowerCase())) / 2,
-				tabY + 5, color);
-		}
 
 		int colX = 16;
 		int colW = 300;
@@ -184,18 +164,6 @@ public class TradeSelectScreen extends Screen {
 		if (event.buttonInfo().button() == 0) {
 			int mx = (int) event.x();
 			int my = (int) event.y();
-
-			int tabY = 30;
-			int tabW = 80;
-			int tabStartX = this.width / 2 - (tabW * 3 + 8) / 2;
-			for (int i = 0; i < Tab.values().length; i++) {
-				int tx = tabStartX + i * (tabW + 4);
-				if (mx >= tx && mx <= tx + tabW && my >= tabY && my <= tabY + 20) {
-					currentTab = Tab.values()[i];
-					filterResults();
-					return true;
-				}
-			}
 
 			int colX = 16;
 			int y = 66;
